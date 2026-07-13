@@ -5,6 +5,9 @@ import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
 import { DEPARTMENTS, DOCTORS } from "./src/data";
+import dns from "dns";
+
+dns.setDefaultResultOrder("ipv4first");
 
 dotenv.config();
 
@@ -364,9 +367,8 @@ GUIDELINES FOR ANSWERS:
       const isSecure = port === 465;
       const transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
-        port: 465,
-        secure: true,
-        family: 4, // Force IPv4
+        port: 587,
+        secure: false,
         auth: {
           user,
           pass,
