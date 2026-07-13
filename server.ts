@@ -363,9 +363,10 @@ GUIDELINES FOR ANSWERS:
 
       const isSecure = port === 465;
       const transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure: isSecure,
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        family: 4, // Force IPv4
         auth: {
           user,
           pass,
