@@ -1,0 +1,6 @@
+{
+  "name": "Sanjeevani Medical Centre",
+  "description": "A modern, clean healthcare portal for Sanjeevani Medical Centre featuring comprehensive department details, doctor profiles, and an interactive online appointment booking system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

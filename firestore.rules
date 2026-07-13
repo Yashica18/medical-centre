@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // User Profile Rules
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming());
+      allow update: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && incoming().createdAt == existing().createdAt && incoming().uid == existing().uid && incoming().email == existing().email;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'photoURL', 'createdAt']) &&
+             data.keys().size() == 5 &&
+             data.uid is string && data.uid == request.auth.uid &&
+             data.email is string && data.email.size() <= 256 &&
+             data.displayName is string && data.displayName.size() <= 128 &&
+             data.photoURL is string && data.photoURL.size() <= 1024 &&
+             data.createdAt is string;
+    }
+
+    // Appointment Rules
+    match /appointments/{appointmentId} {
+      allow read: if isSignedIn() && (
+        request.auth.token.email == 'yashicajindal1806@gmail.com' ||
+        request.auth.token.email.lower() == 'yashicajindal1806@gmail.com' ||
+        ('email' in request.auth.token && request.auth.token.email.lower() == 'yashicajindal1806@gmail.com') ||
+        (resource != null && 'userId' in resource.data && resource.data.userId == request.auth.uid)
+      );
+      allow create: if isSignedIn() && isValidId(appointmentId) && (
+        request.auth.token.email == 'yashicajindal1806@gmail.com' ||
+        request.auth.token.email.lower() == 'yashicajindal1806@gmail.com' ||
+        ('email' in request.auth.token && request.auth.token.email.lower() == 'yashicajindal1806@gmail.com') ||
+        isValidAppointment(incoming())
+      );
+      allow update: if isSignedIn() && isValidId(appointmentId) && (
+        request.auth.token.email == 'yashicajindal1806@gmail.com' ||
+        request.auth.token.email.lower() == 'yashicajindal1806@gmail.com' ||
+        ('email' in request.auth.token && request.auth.token.email.lower() == 'yashicajindal1806@gmail.com') ||
+        (isValidAppointment(incoming()) &&
+         existing() != null && 'userId' in existing() && existing().userId == request.auth.uid &&
+         existing().status != 'Cancelled' &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['status']) &&
+         incoming().status == 'Cancelled')
+      );
+      allow delete: if isSignedIn() && (
+        request.auth.token.email == 'yashicajindal1806@gmail.com' ||
+        request.auth.token.email.lower() == 'yashicajindal1806@gmail.com' ||
+        ('email' in request.auth.token && request.auth.token.email.lower() == 'yashicajindal1806@gmail.com')
+      );
+    }
+
+    function isValidAppointment(data) {
+      return data.keys().hasAll(['id', 'userId', 'patientName', 'patientEmail', 'patientPhone', 'departmentId', 'doctorId', 'date', 'timeSlot', 'status', 'createdAt']) &&
+             data.id is string && data.id.size() <= 32 &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.patientName is string && data.patientName.size() <= 128 &&
+             data.patientEmail is string && data.patientEmail.size() <= 256 &&
+             data.patientPhone is string && data.patientPhone.size() <= 32 &&
+             data.departmentId is string && data.departmentId.size() <= 64 &&
+             data.doctorId is string && data.doctorId.size() <= 64 &&
+             data.date is string && data.date.size() <= 32 &&
+             data.timeSlot is string && data.timeSlot.size() <= 32 &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 1024)) &&
+             data.status is string && (data.status == 'Confirmed' || data.status == 'Cancelled') &&
+             data.createdAt is string &&
+             (!('emailNotificationsEnabled' in data) || data.emailNotificationsEnabled is bool);
+    }
+  }
+}
